@@ -1,0 +1,157 @@
+/**
+ * Input System: Handles keyboard, gamepad, and touch inputs
+ */
+
+class InputManager {
+  constructor(config) {
+    this.config = config;
+    this.state = {
+      steering: 0,      // -1 to 1 (left to right)
+      acceleration: 0,  // 0 to 1
+      brake: 0,         // 0 to 1
+    };
+
+    this.keyboard = {
+      left: false,
+      right: false,
+      accelerate: false,
+      brake: false,
+    };
+
+    this.gamepad = {
+      connected: false,
+      axes: [0, 0, 0, 0],
+    };
+
+    this.touch = {
+      steeringLeft: false,
+      steeringRight: false,
+      accelerating: false,
+    };
+
+    this.setupKeyboardListeners();
+    this.setupGamepadListeners();
+    this.setupTouchListeners();
+    this.showTouchControlsIfNeeded();
+  }
+
+  setupKeyboardListeners() {
+    if (!this.config.input.keyboard.enabled) return;
+
+    const keyMap = this.config.input.keyboard.keys;
+
+    window.addEventListener('keydown', (e) => {
+      if (keyMap.left.includes(e.key)) this.keyboard.left = true;
+      if (keyMap.right.includes(e.key)) this.keyboard.right = true;
+      if (keyMap.accelerate.includes(e.key)) this.keyboard.accelerate = true;
+      if (keyMap.brake.includes(e.key)) this.keyboard.brake = true;
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (keyMap.left.includes(e.key)) this.keyboard.left = false;
+      if (keyMap.right.includes(e.key)) this.keyboard.right = false;
+      if (keyMap.accelerate.includes(e.key)) this.keyboard.accelerate = false;
+      if (keyMap.brake.includes(e.key)) this.keyboard.brake = false;
+    });
+  }
+
+  setupGamepadListeners() {
+    if (!this.config.input.gamepad.enabled) return;
+
+    window.addEventListener('gamepadconnected', (e) => {
+      console.log('Gamepad connected:', e.gamepad.id);
+      this.gamepad.connected = true;
+    });
+
+    window.addEventListener('gamepaddisconnected', (e) => {
+      console.log('Gamepad disconnected:', e.gamepad.id);
+      this.gamepad.connected = false;
+    });
+  }
+
+  setupTouchListeners() {
+    if (!this.config.input.touch.enabled) return;
+
+    const steerLeft = document.getElementById('steerLeft');
+    const steerRight = document.getElementById('steerRight');
+    const accelerate = document.getElementById('accelerate');
+
+    if (steerLeft) {
+      steerLeft.addEventListener('touchstart', () => this.touch.steeringLeft = true);
+      steerLeft.addEventListener('touchend', () => this.touch.steeringLeft = false);
+    }
+
+    if (steerRight) {
+      steerRight.addEventListener('touchstart', () => this.touch.steeringRight = true);
+      steerRight.addEventListener('touchend', () => this.touch.steeringRight = false);
+    }
+
+    if (accelerate) {
+      accelerate.addEventListener('touchstart', () => this.touch.accelerating = true);
+      accelerate.addEventListener('touchend', () => this.touch.accelerating = false);
+    }
+  }
+
+  showTouchControlsIfNeeded() {
+    const overlay = document.getElementById('touchOverlay');
+    if (!overlay) return;
+
+    // Show touch controls on mobile devices
+    const isMobile = /iPhone|iPad|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile && this.config.input.touch.showOnMobile) {
+      overlay.classList.add('show');
+    }
+  }
+
+  pollGamepad() {
+    if (!this.config.input.gamepad.enabled) return;
+
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const gamepad = Array.from(gamepads).find(g => g && g.connected);
+
+    if (gamepad) {
+      this.gamepad.connected = true;
+      this.gamepad.axes = gamepad.axes.slice(0, 4);
+    }
+  }
+
+  update() {
+    this.pollGamepad();
+
+    // Reset state
+    this.state.steering = 0;
+    this.state.acceleration = 0;
+    this.state.brake = 0;
+
+    // Keyboard input
+    if (this.keyboard.left) this.state.steering -= 1;
+    if (this.keyboard.right) this.state.steering += 1;
+    if (this.keyboard.accelerate) this.state.acceleration = 1;
+    if (this.keyboard.brake) this.state.brake = 1;
+
+    // Gamepad input (left stick)
+    if (this.gamepad.connected) {
+      const dz = this.config.input.gamepad.deadzone;
+      const lx = Math.abs(this.gamepad.axes[0]) > dz ? this.gamepad.axes[0] : 0;
+      const ly = Math.abs(this.gamepad.axes[1]) > dz ? this.gamepad.axes[1] : 0;
+
+      this.state.steering += lx;
+      if (ly > 0) this.state.acceleration = Math.min(1, this.state.acceleration + Math.abs(ly));
+      if (ly < 0) this.state.brake = Math.min(1, this.state.brake + Math.abs(ly));
+    }
+
+    // Touch input
+    if (this.touch.steeringLeft) this.state.steering -= 1;
+    if (this.touch.steeringRight) this.state.steering += 1;
+    if (this.touch.accelerating) this.state.acceleration = 1;
+
+    // Clamp values to [-1, 1]
+    this.state.steering = Math.max(-1, Math.min(1, this.state.steering));
+    this.state.acceleration = Math.max(0, Math.min(1, this.state.acceleration));
+    this.state.brake = Math.max(0, Math.min(1, this.state.brake));
+  }
+
+  getState() {
+    return { ...this.state };
+  }
+}

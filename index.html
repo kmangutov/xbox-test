@@ -1,201 +1,86 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Xbox Controller Min/Max Tracker</title>
-<style>
-  :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
-  body { margin: 0; padding: 24px; background: #0f172a; color: #e5e7eb; }
-  h1 { margin: 0 0 12px; font-size: 22px; }
-  .row { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-  .card { background: #111827; border: 1px solid #374151; border-radius: 14px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,.2);}
-  .muted { color: #9ca3af; font-size: 13px; }
-  .kv { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: center; margin-top: 8px; }
-  .kv div { padding: 6px 8px; background:#0b1220; border:1px solid #22304a; border-radius:8px; text-align:center; font-variant-numeric: tabular-nums; }
-  .grid { display:grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items:center; }
-  button { cursor:pointer; padding:10px 14px; border-radius:10px; border:1px solid #374151; background:#1f2937; color:#e5e7eb; }
-  button:hover { background:#273244; }
-  input[type="range"] { width: 160px; }
-  code { background:#0b1220; border:1px solid #22304a; padding:2px 6px; border-radius:6px; }
-  .ok { color:#86efac } .warn { color:#fde68a } .bad { color:#fca5a5 }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Toddler Racing</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #87ceeb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #gameContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 1200px;
+      max-height: 600px;
+      background: #e0f4ff;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #87ceeb;
+    }
+    #touchOverlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 150px;
+      background: rgba(0, 0, 0, 0.3);
+      display: none;
+      justify-content: space-around;
+      align-items: flex-end;
+      padding: 10px;
+    }
+    #touchOverlay.show { display: flex; }
+    .touch-control {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 2px solid #333;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      user-select: none;
+    }
+    .debug {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #0f0;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      z-index: 10;
+    }
+  </style>
 </head>
 <body>
-  <h1>Xbox Controller Min/Max Tracker</h1>
-  <p class="muted">Connect a controller, then press any button to begin. Uses the <code>Gamepad</code> API. Tracking axes:
-    <code>0,1</code> (Left Stick), <code>2,3</code> (Right Stick).</p>
-
-  <div class="row">
-    <div class="card">
-      <div class="grid">
-        <span>Status</span><span id="status" class="warn">No gamepad</span>
-        <span>Gamepad</span><span id="gpName">—</span>
-        <span>Index</span><span id="gpIndex">—</span>
-        <span>Mapping</span><span id="gpMapping">—</span>
-        <span>Deadzone</span>
-        <span>
-          <input id="deadzone" type="range" min="0" max="0.3" step="0.005" value="0.05" />
-          <span class="muted" id="dzLabel">0.05</span>
-        </span>
-        <span>Actions</span>
-        <span>
-          <button id="resetBtn">Reset min/max</button>
-          <button id="copyBtn">Copy snapshot</button>
-        </span>
-      </div>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="touchOverlay">
+      <div class="touch-control" id="steerLeft">←</div>
+      <div class="touch-control" id="steerRight">→</div>
+      <div class="touch-control" id="accelerate">🚗</div>
     </div>
-
-    <div class="card">
-      <strong>Left Stick (axes 0,1)</strong>
-      <div class="kv">
-        <div>Axis</div><div>Current</div><div>Min / Max</div>
-        <div>X (0)</div><div id="lxNow">—</div><div id="lxMinMax">—</div>
-        <div>Y (1)</div><div id="lyNow">—</div><div id="lyMinMax">—</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <strong>Right Stick (axes 2,3)</strong>
-      <div class="kv">
-        <div>Axis</div><div>Current</div><div>Min / Max</div>
-        <div>X (2)</div><div id="rxNow">—</div><div id="rxMinMax">—</div>
-        <div>Y (3)</div><div id="ryNow">—</div><div id="ryMinMax">—</div>
-      </div>
-    </div>
+    <div class="debug" id="debug"></div>
   </div>
 
-<script>
-(() => {
-  const $ = id => document.getElementById(id);
-  const el = {
-    status: $('status'), gpName: $('gpName'), gpIndex: $('gpIndex'), gpMapping: $('gpMapping'),
-    lxNow: $('lxNow'), lyNow: $('lyNow'), rxNow: $('rxNow'), ryNow: $('ryNow'),
-    lxMinMax: $('lxMinMax'), lyMinMax: $('lyMinMax'), rxMinMax: $('rxMinMax'), ryMinMax: $('ryMinMax'),
-    deadzone: $('deadzone'), dzLabel: $('dzLabel'),
-    resetBtn: $('resetBtn'), copyBtn: $('copyBtn'),
-  };
-
-  // Min/Max tracker
-  const mkMM = () => ({min: +Infinity, max: -Infinity});
-  let mm = { lx: mkMM(), ly: mkMM(), rx: mkMM(), ry: mkMM() };
-  function resetMM() { mm = { lx: mkMM(), ly: mkMM(), rx: mkMM(), ry: mkMM() }; }
-
-  // Apply a simple deadzone: returns 0 if |v| < dz, otherwise scaled (optional)
-  function applyDeadzone(v, dz) {
-    if (Math.abs(v) < dz) return 0;
-    // Optionally, rescale to keep full dynamic range:
-    const sign = Math.sign(v);
-    const mag = (Math.abs(v) - dz) / (1 - dz);
-    return sign * Math.min(1, Math.max(0, mag));
-  }
-
-  // Format number for display
-  const fmt = v => (Number.isFinite(v) ? v.toFixed(4) : '—');
-
-  // State
-  let rafId = null;
-  let lastIndex = null;
-
-  function updateUIForGamepad(gp) {
-    if (gp) {
-      el.status.textContent = 'Connected';
-      el.status.className = 'ok';
-      el.gpName.textContent = gp.id || 'Unknown';
-      el.gpIndex.textContent = gp.index;
-      el.gpMapping.textContent = gp.mapping || '(none)';
-    } else {
-      el.status.textContent = 'No gamepad';
-      el.status.className = 'warn';
-      el.gpName.textContent = '—';
-      el.gpIndex.textContent = '—';
-      el.gpMapping.textContent = '—';
-      el.lxNow.textContent = el.lyNow.textContent = el.rxNow.textContent = el.ryNow.textContent = '—';
-      el.lxMinMax.textContent = el.lyMinMax.textContent = el.rxMinMax.textContent = el.ryMinMax.textContent = '—';
-    }
-  }
-
-  function poll() {
-    const gps = navigator.getGamepads ? navigator.getGamepads() : [];
-    const gp = Array.from(gps).find(g => g && g.connected);
-    if (!gp) {
-      if (lastIndex !== null) { updateUIForGamepad(null); lastIndex = null; }
-      rafId = requestAnimationFrame(poll);
-      return;
-    }
-    if (gp.index !== lastIndex) { updateUIForGamepad(gp); lastIndex = gp.index; }
-
-    const dz = parseFloat(el.deadzone.value) || 0;
-
-    // Axes: 0,1 = left stick; 2,3 = right stick (common XInput layout)
-    const ax = gp.axes || [];
-    const lx = applyDeadzone(ax[0] ?? 0, dz);
-    const ly = applyDeadzone(ax[1] ?? 0, dz);
-    const rx = applyDeadzone(ax[2] ?? 0, dz);
-    const ry = applyDeadzone(ax[3] ?? 0, dz);
-
-    // Update min/max
-    if (lx < mm.lx.min) mm.lx.min = lx; if (lx > mm.lx.max) mm.lx.max = lx;
-    if (ly < mm.ly.min) mm.ly.min = ly; if (ly > mm.ly.max) mm.ly.max = ly;
-    if (rx < mm.rx.min) mm.rx.min = rx; if (rx > mm.rx.max) mm.rx.max = rx;
-    if (ry < mm.ry.min) mm.ry.min = ry; if (ry > mm.ry.max) mm.ry.max = ry;
-
-    // Update UI
-    el.lxNow.textContent = fmt(lx);
-    el.lyNow.textContent = fmt(ly);
-    el.rxNow.textContent = fmt(rx);
-    el.ryNow.textContent = fmt(ry);
-
-    el.lxMinMax.textContent = `${fmt(mm.lx.min)} / ${fmt(mm.lx.max)}`;
-    el.lyMinMax.textContent = `${fmt(mm.ly.min)} / ${fmt(mm.ly.max)}`;
-    el.rxMinMax.textContent = `${fmt(mm.rx.min)} / ${fmt(mm.rx.max)}`;
-    el.ryMinMax.textContent = `${fmt(mm.ry.min)} / ${fmt(mm.ry.max)}`;
-
-    rafId = requestAnimationFrame(poll);
-  }
-
-  // Events
-  window.addEventListener('gamepadconnected', (e) => {
-    updateUIForGamepad(e.gamepad);
-    if (!rafId) poll();
-  });
-  window.addEventListener('gamepaddisconnected', () => updateUIForGamepad(null));
-
-  el.deadzone.addEventListener('input', () => {
-    el.dzLabel.textContent = parseFloat(el.deadzone.value).toFixed(3);
-  });
-
-  el.resetBtn.addEventListener('click', () => resetMM());
-
-  el.copyBtn.addEventListener('click', async () => {
-    const payload = {
-      timestamp: new Date().toISOString(),
-      deadzone: parseFloat(el.deadzone.value),
-      minMax: {
-        left: { x: mm.lx, y: mm.ly },
-        right: { x: mm.rx, y: mm.ry },
-      },
-    };
-    const text = JSON.stringify(payload, null, 2);
-    try {
-      await navigator.clipboard.writeText(text);
-      el.status.textContent = 'Snapshot copied to clipboard';
-      el.status.className = 'ok';
-      setTimeout(() => {
-        el.status.textContent = 'Connected';
-      }, 1200);
-    } catch {
-      alert(text); // fallback
-    }
-  });
-
-  // Kick off polling after any user gesture (needed on some browsers to surface gamepads).
-  window.addEventListener('click', () => { if (!rafId) poll(); }, { once: true });
-  window.addEventListener('keydown', () => { if (!rafId) poll(); }, { once: true });
-
-  // Initial UI
-  updateUIForGamepad(null);
-})();
-</script>
+  <script src="js/input.js"></script>
+  <script src="js/graphics.js"></script>
+  <script src="js/game.js"></script>
 </body>
 </html>

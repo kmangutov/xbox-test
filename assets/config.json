@@ -1,0 +1,44 @@
+{
+  "game": {
+    "width": 1200,
+    "height": 600,
+    "defaultCar": "sedan",
+    "defaultTerrain": "road"
+  },
+  "physics": {
+    "maxSpeed": 3.5,
+    "acceleration": 0.12,
+    "deceleration": 0.1,
+    "turnSpeed": 0.05,
+    "friction": 0.02
+  },
+  "input": {
+    "keyboard": {
+      "enabled": true,
+      "keys": {
+        "left": ["ArrowLeft", "a"],
+        "right": ["ArrowRight", "d"],
+        "accelerate": ["ArrowUp", "w"],
+        "brake": ["ArrowDown", "s"]
+      }
+    },
+    "gamepad": {
+      "enabled": true,
+      "deadzone": 0.2,
+      "axes": {
+        "leftStickX": 0,
+        "leftStickY": 1,
+        "rightStickX": 2,
+        "rightStickY": 3
+      }
+    },
+    "touch": {
+      "enabled": true,
+      "showOnMobile": true
+    }
+  },
+  "world": {
+    "terrainTileSize": 100,
+    "objectDensity": 0.3
+  }
+}

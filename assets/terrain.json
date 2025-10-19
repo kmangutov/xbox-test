@@ -1,0 +1,72 @@
+{
+  "tiles": [
+    {
+      "id": "road",
+      "name": "Road",
+      "color": "#5a6268",
+      "speedMultiplier": 1.0,
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "grass",
+      "name": "Grass",
+      "color": "#4ecca3",
+      "speedMultiplier": 0.7,
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "mud",
+      "name": "Mud",
+      "color": "#a97155",
+      "speedMultiplier": 0.5,
+      "width": 100,
+      "height": 100
+    }
+  ],
+  "objects": [
+    {
+      "id": "tree",
+      "name": "Tree",
+      "type": "circle",
+      "width": 40,
+      "height": 50,
+      "color": "#2d8659",
+      "trunkColor": "#6d4c41",
+      "parts": [
+        { "type": "trunk", "x": 0, "y": 15, "width": 10, "height": 25, "color": "#6d4c41" },
+        { "type": "foliage", "x": 0, "y": 0, "radius": 22, "color": "#2d8659" },
+        { "type": "foliage", "x": -8, "y": -5, "radius": 15, "color": "#3fb883" },
+        { "type": "foliage", "x": 10, "y": -3, "radius": 17, "color": "#3fb883" }
+      ]
+    },
+    {
+      "id": "rock",
+      "name": "Rock",
+      "type": "circle",
+      "width": 35,
+      "height": 30,
+      "color": "#7f8c8d",
+      "parts": [
+        { "type": "foliage", "x": 0, "y": 0, "radius": 18, "color": "#7f8c8d" },
+        { "type": "foliage", "x": -7, "y": 3, "radius": 12, "color": "#95a5a6" },
+        { "type": "foliage", "x": 8, "y": 2, "radius": 10, "color": "#6c7a7d" },
+        { "type": "highlight", "x": -5, "y": -8, "width": 6, "height": 4, "color": "#bdc3c7" }
+      ]
+    },
+    {
+      "id": "flower",
+      "name": "Flower",
+      "type": "circle",
+      "width": 12,
+      "height": 16,
+      "color": "#ff6b9d",
+      "parts": [
+        { "type": "stem", "x": 0, "y": 6, "width": 2, "height": 10, "color": "#3fb883" },
+        { "type": "petals", "x": 0, "y": 0, "radius": 6, "color": "#ff6b9d" },
+        { "type": "petals", "x": 0, "y": 0, "radius": 3, "color": "#ffd93d" }
+      ]
+    }
+  ]
+}
