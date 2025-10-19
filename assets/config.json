@@ -2,7 +2,7 @@
   "game": {
     "width": 1200,
     "height": 600,
-    "defaultCar": "sedan",
+    "defaultCar": "truck",
     "defaultTerrain": "road"
   },
   "physics": {

@@ -44,22 +44,27 @@ class GraphicsManager {
     ctx.translate(x, y);
     ctx.rotate(rotation);
 
-    // Draw based on parts
+    // Draw based on parts (coordinates are now relative to center)
     car.parts.forEach(part => {
       if (part.type === 'body' || part.type === 'cabin') {
         ctx.fillStyle = part.color;
-        ctx.fillRect(part.x - car.width / 2, part.y - car.height / 2, part.width, part.height);
+        ctx.fillRect(part.x, part.y, part.width, part.height);
       } else if (part.type === 'window') {
         ctx.fillStyle = part.color;
-        ctx.fillRect(part.x - car.width / 2, part.y - car.height / 2, part.width, part.height);
+        ctx.fillRect(part.x, part.y, part.width, part.height);
       } else if (part.type === 'hood') {
         ctx.fillStyle = part.color;
-        ctx.fillRect(part.x - car.width / 2, part.y - car.height / 2, part.width, part.height);
+        ctx.fillRect(part.x, part.y, part.width, part.height);
       } else if (part.type === 'wheel') {
         ctx.fillStyle = part.color;
-        ctx.beginPath();
-        ctx.arc(part.x - car.width / 2, part.y - car.height / 2, part.radius, 0, Math.PI * 2);
-        ctx.fill();
+        // Support both circle wheels (radius) and rectangular wheels (width/height)
+        if (part.radius) {
+          ctx.beginPath();
+          ctx.arc(part.x, part.y, part.radius, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (part.width && part.height) {
+          ctx.fillRect(part.x, part.y, part.width, part.height);
+        }
       }
     });
 

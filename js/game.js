@@ -28,6 +28,8 @@ class Game {
     this.scrollX = 0;
     this.scrollY = 0;
     this.running = false;
+    this.tireTracks = []; // Array of tire track positions
+    this.trackInterval = 0;
     this.debug = {
       steering: 0,
       acceleration: 0,
@@ -78,23 +80,46 @@ class Game {
     requestAnimationFrame(this.gameLoop);
   };
 
+  getCurrentTerrain() {
+    const tileSize = 100;
+    const tileX = Math.floor((this.scrollX + this.canvas.width / 2) / tileSize);
+    const tileY = Math.floor((this.scrollY + this.canvas.height / 2) / tileSize);
+
+    // Check terrain type (same logic as drawTerrainGrid)
+    if (Math.abs(tileY % 8) <= 1 || Math.abs(tileX % 10) <= 1) {
+      return this.graphicsManager.assets.terrain['road'];
+    }
+
+    const diag1 = (tileX + tileY) % 15;
+    const diag2 = (tileX - tileY) % 12;
+    if (diag1 >= 7 && diag1 <= 8 || Math.abs(diag2) <= 1) {
+      return this.graphicsManager.assets.terrain['mud'];
+    }
+
+    return this.graphicsManager.assets.terrain['grass'];
+  }
+
   update() {
     // Update input state
     this.inputManager.update();
     const input = this.inputManager.getState();
 
     const physics = this.config.physics;
+    const terrain = this.getCurrentTerrain();
+    const terrainMultiplier = terrain ? terrain.speedMultiplier : 1.0;
 
-    // Update steering (rotation)
-    this.car.rotation += input.steering * physics.turnSpeed;
+    // Update steering (rotation) - terrain affects steering too
+    this.car.rotation += input.steering * physics.turnSpeed * terrainMultiplier;
 
     // Update speed based on acceleration/brake
     if (input.acceleration > 0) {
-      this.car.speed = Math.min(physics.maxSpeed, this.car.speed + physics.acceleration);
+      this.car.speed = Math.min(physics.maxSpeed * terrainMultiplier, this.car.speed + physics.acceleration * terrainMultiplier);
     } else if (input.brake > 0) {
       this.car.speed = Math.max(0, this.car.speed - physics.maxSpeed);
     } else {
-      this.car.speed = Math.max(0, this.car.speed - physics.friction);
+      // Terrain-based friction (grass and mud slow you down more)
+      const terrainFriction = physics.friction * (2 - terrainMultiplier);
+      this.car.speed = Math.max(0, this.car.speed - terrainFriction);
     }
 
     // Calculate velocity based on rotation
@@ -106,11 +131,54 @@ class Game {
     this.scrollX += this.car.vx * 2;
     this.scrollY += this.car.vy * 2;
 
+    // Add tire tracks on grass/mud if moving
+    if (this.car.speed > 0.5 && terrain && terrain.id !== 'road') {
+      this.trackInterval++;
+      if (this.trackInterval >= 3) {
+        this.trackInterval = 0;
+
+        // Add tire tracks for left and right wheels
+        const wheelOffset = 8; // Distance from center to wheels
+        const leftX = this.scrollX + this.canvas.width / 2 - wheelOffset * Math.cos(this.car.rotation);
+        const leftY = this.scrollY + this.canvas.height / 2 - wheelOffset * Math.sin(this.car.rotation);
+        const rightX = this.scrollX + this.canvas.width / 2 + wheelOffset * Math.cos(this.car.rotation);
+        const rightY = this.scrollY + this.canvas.height / 2 + wheelOffset * Math.sin(this.car.rotation);
+
+        this.tireTracks.push({
+          x: leftX,
+          y: leftY,
+          rotation: this.car.rotation,
+          age: 0,
+          maxAge: 180 // Frames until track disappears (3 seconds at 60fps)
+        });
+
+        this.tireTracks.push({
+          x: rightX,
+          y: rightY,
+          rotation: this.car.rotation,
+          age: 0,
+          maxAge: 180
+        });
+      }
+    }
+
+    // Age and remove old tire tracks
+    this.tireTracks = this.tireTracks.filter(track => {
+      track.age++;
+      return track.age < track.maxAge;
+    });
+
+    // Limit tire tracks to prevent memory issues
+    if (this.tireTracks.length > 500) {
+      this.tireTracks = this.tireTracks.slice(-500);
+    }
+
     // Update debug info
     this.debug.steering = input.steering.toFixed(2);
     this.debug.acceleration = input.acceleration.toFixed(2);
     this.debug.brake = input.brake.toFixed(2);
     this.debug.speed = this.car.speed.toFixed(2);
+    this.debug.terrain = terrain ? terrain.name : 'Unknown';
   }
 
   render() {
@@ -120,6 +188,9 @@ class Game {
 
     // Draw terrain grid (moving background)
     this.graphicsManager.drawTerrainGrid(this.ctx, this.canvas.width, this.canvas.height, this.scrollX, this.scrollY);
+
+    // Draw tire tracks
+    this.drawTireTracks();
 
     // Draw some trees/rocks for visual interest
     this.drawSceneObjects();
@@ -153,6 +224,36 @@ class Game {
     }
 
     return false;
+  }
+
+  drawTireTracks() {
+    this.ctx.save();
+
+    for (const track of this.tireTracks) {
+      const screenX = track.x - this.scrollX;
+      const screenY = track.y - this.scrollY;
+
+      // Only draw if visible on screen
+      if (screenX < -20 || screenX > this.canvas.width + 20 ||
+          screenY < -20 || screenY > this.canvas.height + 20) {
+        continue;
+      }
+
+      // Calculate opacity based on age (fade out)
+      const opacity = 1 - (track.age / track.maxAge);
+
+      this.ctx.save();
+      this.ctx.translate(screenX, screenY);
+      this.ctx.rotate(track.rotation);
+
+      // Draw a small dark tire mark
+      this.ctx.fillStyle = `rgba(50, 40, 30, ${opacity * 0.4})`;
+      this.ctx.fillRect(-2, -6, 4, 12);
+
+      this.ctx.restore();
+    }
+
+    this.ctx.restore();
   }
 
   drawSceneObjects() {
@@ -228,6 +329,7 @@ Steering: ${this.debug.steering}
 Accel: ${this.debug.acceleration}
 Brake: ${this.debug.brake}
 Speed: ${this.debug.speed}
+Terrain: ${this.debug.terrain}
 Rotation: ${(this.car.rotation * 180 / Math.PI).toFixed(0)}°
 Position: (${Math.floor(this.scrollX)}, ${Math.floor(this.scrollY)})
 Car: ${this.car.carType}
