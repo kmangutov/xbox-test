@@ -68,12 +68,13 @@ const GameConstants = {
     // Mud overlay (only appears on grass, not roads)
     mud: {
       enabled: true,
-      density: 0.15,          // Probability per grass tile
+      density: 0.04,          // Much more rare (4% chance per grass tile)
       circleRadius: 35,       // Smaller circles for concentrated patches
       circleCount: 2,         // Fewer circles per tile (more sparse)
       baseColor: '#6d5635',   // Darker, muddier brown
       darkColor: '#534429',   // Even darker variation
-      alpha: 0.6              // Less transparent, more visible
+      alpha: 0.6,             // Less transparent, more visible
+      speedMultiplier: 0.4    // Mud slows you down more than grass (0.4 vs 0.7)
     }
   },
 

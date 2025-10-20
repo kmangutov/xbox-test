@@ -99,12 +99,47 @@ class Game {
 
   getCurrentTerrain() {
     const tileSize = 100;
-    const tileX = Math.floor((this.scrollX + this.canvas.width / 2) / tileSize);
-    const tileY = Math.floor((this.scrollY + this.canvas.height / 2) / tileSize);
+    const carWorldX = this.scrollX + this.canvas.width / 2;
+    const carWorldY = this.scrollY + this.canvas.height / 2;
+    const tileX = Math.floor(carWorldX / tileSize);
+    const tileY = Math.floor(carWorldY / tileSize);
 
     // Check terrain type (only road or grass)
     if (Math.abs(tileY % 8) <= 1 || Math.abs(tileX % 10) <= 1) {
       return this.graphicsManager.assets.terrain['road'];
+    }
+
+    // Check if on grass with mud
+    const mudSeed = tileX * 19349663 ^ tileY * 83492791;
+    const mudRand = (mudSeed % 1000) / 1000;
+
+    if (GameConstants.terrain.mud.enabled && mudRand < GameConstants.terrain.mud.density) {
+      // Check if car is actually within a mud circle
+      const cfg = GameConstants.terrain.mud;
+      const tileScreenX = tileX * tileSize;
+      const tileScreenY = tileY * tileSize;
+
+      for (let i = 0; i < cfg.circleCount; i++) {
+        const offsetX = ((mudSeed * (i + 1) * 7919) % (tileSize * 0.6)) - tileSize * 0.3;
+        const offsetY = ((mudSeed * (i + 1) * 8831) % (tileSize * 0.6)) - tileSize * 0.3;
+
+        const mudCenterX = tileScreenX + tileSize / 2 + offsetX;
+        const mudCenterY = tileScreenY + tileSize / 2 + offsetY;
+
+        const dx = carWorldX - mudCenterX;
+        const dy = carWorldY - mudCenterY;
+        const distSq = dx * dx + dy * dy;
+
+        if (distSq < cfg.circleRadius * cfg.circleRadius) {
+          // Car is in a mud puddle - return modified grass terrain
+          return {
+            ...this.graphicsManager.assets.terrain['grass'],
+            name: 'Mud',
+            speedMultiplier: cfg.speedMultiplier,
+            isMud: true
+          };
+        }
+      }
     }
 
     return this.graphicsManager.assets.terrain['grass'];
@@ -148,6 +183,8 @@ class Game {
       if (this.trackInterval >= 3) {
         this.trackInterval = 0;
 
+        const isMud = terrain.isMud || false;
+
         // Add tire tracks for left and right wheels
         const wheelOffset = 8; // Distance from center to wheels
         const leftX = this.scrollX + this.canvas.width / 2 - wheelOffset * Math.cos(this.car.rotation);
@@ -160,7 +197,8 @@ class Game {
           y: leftY,
           rotation: this.car.rotation,
           age: 0,
-          maxAge: 180 // Frames until track disappears (3 seconds at 60fps)
+          maxAge: isMud ? 300 : 180, // Mud tracks last longer (5 sec vs 3 sec)
+          isMud: isMud
         });
 
         this.tireTracks.push({
@@ -168,7 +206,8 @@ class Game {
           y: rightY,
           rotation: this.car.rotation,
           age: 0,
-          maxAge: 180
+          maxAge: isMud ? 300 : 180,
+          isMud: isMud
         });
       }
     }
@@ -262,9 +301,16 @@ class Game {
       this.ctx.translate(screenX, screenY);
       this.ctx.rotate(track.rotation);
 
-      // Draw a small dark tire mark
-      this.ctx.fillStyle = `rgba(50, 40, 30, ${opacity * 0.4})`;
-      this.ctx.fillRect(-2, -6, 4, 12);
+      // Draw tire mark - mud tracks are darker and more visible
+      if (track.isMud) {
+        // Muddy tracks: darker brown, more opaque, wider
+        this.ctx.fillStyle = `rgba(75, 60, 45, ${opacity * 0.7})`;
+        this.ctx.fillRect(-3, -7, 6, 14);
+      } else {
+        // Regular grass tracks: subtle dark marks
+        this.ctx.fillStyle = `rgba(50, 40, 30, ${opacity * 0.4})`;
+        this.ctx.fillRect(-2, -6, 4, 12);
+      }
 
       this.ctx.restore();
     }
