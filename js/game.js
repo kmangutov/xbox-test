@@ -324,7 +324,8 @@ class Game {
   drawDebugInfo() {
     const debugEl = document.getElementById('debug');
     if (debugEl) {
-      debugEl.textContent = `
+      const input = this.inputManager.getState();
+      let debugText = `
 Steering: ${this.debug.steering}
 Accel: ${this.debug.acceleration}
 Brake: ${this.debug.brake}
@@ -332,8 +333,17 @@ Speed: ${this.debug.speed}
 Terrain: ${this.debug.terrain}
 Rotation: ${(this.car.rotation * 180 / Math.PI).toFixed(0)}°
 Position: (${Math.floor(this.scrollX)}, ${Math.floor(this.scrollY)})
-Car: ${this.car.carType}
-      `.trim();
+Car: ${this.car.carType}`;
+
+      // Show raw gamepad values if enabled in constants
+      if (GameConstants.debug.showGamepadValues && input.rawGamepadLX !== undefined) {
+        debugText += `
+--- GAMEPAD RAW ---
+LX: ${input.rawGamepadLX.toFixed(3)}
+LY: ${input.rawGamepadLY.toFixed(3)}`;
+      }
+
+      debugEl.textContent = debugText.trim();
     }
   }
 }

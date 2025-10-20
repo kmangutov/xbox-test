@@ -123,6 +123,10 @@ class InputManager {
     this.state.acceleration = 0;
     this.state.brake = 0;
 
+    // Store raw gamepad values for debug
+    this.state.rawGamepadLX = 0;
+    this.state.rawGamepadLY = 0;
+
     // Keyboard input
     if (this.keyboard.left) this.state.steering -= 1;
     if (this.keyboard.right) this.state.steering += 1;
@@ -131,13 +135,44 @@ class InputManager {
 
     // Gamepad input (left stick)
     if (this.gamepad.connected) {
-      const dz = this.config.input.gamepad.deadzone;
-      const lx = Math.abs(this.gamepad.axes[0]) > dz ? this.gamepad.axes[0] : 0;
-      const ly = Math.abs(this.gamepad.axes[1]) > dz ? this.gamepad.axes[1] : 0;
+      const rawLX = this.gamepad.axes[0] || 0;
+      const rawLY = this.gamepad.axes[1] || 0;
 
-      this.state.steering += lx;
-      if (ly > 0) this.state.acceleration = Math.min(1, this.state.acceleration + Math.abs(ly));
-      if (ly < 0) this.state.brake = Math.min(1, this.state.brake + Math.abs(ly));
+      // Store raw values for debugging
+      this.state.rawGamepadLX = rawLX;
+      this.state.rawGamepadLY = rawLY;
+
+      // Apply deadzone
+      const dz = GameConstants.gamepad.deadzone;
+      const lx = Math.abs(rawLX) > dz ? rawLX : 0;
+      const ly = Math.abs(rawLY) > dz ? rawLY : 0;
+
+      // Map steering from hardcoded min/max to -1 to 1 range
+      let steering = 0;
+      if (lx < 0) {
+        // Left: map -0.15 to -1
+        steering = lx / Math.abs(GameConstants.gamepad.steeringMin);
+      } else if (lx > 0) {
+        // Right: map 0.25 to 1
+        steering = lx / GameConstants.gamepad.steeringMax;
+      }
+      // Clamp to -1 to 1
+      steering = Math.max(-1, Math.min(1, steering));
+
+      this.state.steering += steering;
+
+      // TODO: TEMPORARY - Auto-accelerate when steering (remove when pedal controls ready)
+      if (GameConstants.gamepad.autoAccelerateOnSteering && Math.abs(steering) > 0.1) {
+        this.state.acceleration = Math.max(this.state.acceleration, GameConstants.gamepad.autoAccelerateAmount);
+      }
+
+      // Normal acceleration/brake from Y-axis
+      if (ly > 0) {
+        this.state.acceleration = Math.min(1, this.state.acceleration + Math.abs(ly));
+      }
+      if (ly < 0) {
+        this.state.brake = Math.min(1, this.state.brake + Math.abs(ly));
+      }
     }
 
     // Touch input
