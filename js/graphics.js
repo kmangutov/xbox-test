@@ -114,31 +114,13 @@ class GraphicsManager {
         const tileX = Math.floor(x / tileSize);
         const tileY = Math.floor(y / tileSize);
 
-        // Create winding dirt tracks and roads
-        let tileType = 'grass';
+        // Determine terrain type (only road or grass)
         const isHorizontalRoad = Math.abs(tileY % 8) <= 1;
         const isVerticalRoad = Math.abs(tileX % 10) <= 1;
 
-        // Horizontal road every 8 tiles
-        if (isHorizontalRoad) {
+        let tileType = 'grass';
+        if (isHorizontalRoad || isVerticalRoad) {
           tileType = 'road';
-        }
-
-        // Vertical road every 10 tiles
-        if (isVerticalRoad) {
-          tileType = 'road';
-        }
-
-        // Diagonal dirt tracks
-        const diag1 = (tileX + tileY) % 15;
-        const diag2 = (tileX - tileY) % 12;
-
-        if (diag1 >= 7 && diag1 <= 8) {
-          tileType = 'mud';
-        }
-
-        if (Math.abs(diag2) <= 1) {
-          tileType = 'mud';
         }
 
         const screenX = x - scrollX;
@@ -147,8 +129,6 @@ class GraphicsManager {
         // Draw base terrain
         if (tileType === 'grass') {
           this.drawGrassTile(ctx, tileX, tileY, screenX, screenY, tileSize);
-        } else if (tileType === 'mud') {
-          this.drawMudTile(ctx, tileX, tileY, screenX, screenY, tileSize);
         } else {
           this.drawTerrain(ctx, tileType, screenX, screenY, tileSize, tileSize);
         }
@@ -177,9 +157,9 @@ class GraphicsManager {
 
     // Add patch variation
     const seed = tileX * 73856093 ^ tileY * 19349663;
-    const rand = (seed % 1000) / 1000;
+    const patchRand = (seed % 1000) / 1000;
 
-    if (rand < GameConstants.terrain.grass.patchDensity) {
+    if (patchRand < GameConstants.terrain.grass.patchDensity) {
       const colors = GameConstants.terrain.grass.colorVariations;
       const patchColor = colors[Math.abs(seed) % colors.length];
 
@@ -193,17 +173,22 @@ class GraphicsManager {
       ctx.fillStyle = patchColor;
       ctx.fillRect(patchX, patchY, patchSize, patchSize);
     }
+
+    // Add mud overlay
+    if (GameConstants.terrain.mud.enabled) {
+      const mudSeed = tileX * 19349663 ^ tileY * 83492791;
+      const mudRand = (mudSeed % 1000) / 1000;
+
+      if (mudRand < GameConstants.terrain.mud.density) {
+        this.drawMudOverlay(ctx, tileX, tileY, screenX, screenY, tileSize);
+      }
+    }
   }
 
-  drawMudTile(ctx, tileX, tileY, screenX, screenY, tileSize) {
-    // Draw grass base first
-    const grassTile = this.assets.terrain['grass'];
-    ctx.fillStyle = grassTile.color;
-    ctx.fillRect(screenX, screenY, tileSize, tileSize);
-
-    // Draw overlapping mud circles
+  drawMudOverlay(ctx, tileX, tileY, screenX, screenY, tileSize) {
+    // Draw overlapping mud circles on top of grass
     const cfg = GameConstants.terrain.mud;
-    const seed = tileX * 73856093 ^ tileY * 19349663;
+    const seed = tileX * 19349663 ^ tileY * 83492791;
 
     ctx.save();
     ctx.globalAlpha = cfg.alpha;

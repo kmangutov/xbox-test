@@ -102,15 +102,9 @@ class Game {
     const tileX = Math.floor((this.scrollX + this.canvas.width / 2) / tileSize);
     const tileY = Math.floor((this.scrollY + this.canvas.height / 2) / tileSize);
 
-    // Check terrain type (same logic as drawTerrainGrid)
+    // Check terrain type (only road or grass)
     if (Math.abs(tileY % 8) <= 1 || Math.abs(tileX % 10) <= 1) {
       return this.graphicsManager.assets.terrain['road'];
-    }
-
-    const diag1 = (tileX + tileY) % 15;
-    const diag2 = (tileX - tileY) % 12;
-    if (diag1 >= 7 && diag1 <= 8 || Math.abs(diag2) <= 1) {
-      return this.graphicsManager.assets.terrain['mud'];
     }
 
     return this.graphicsManager.assets.terrain['grass'];
@@ -369,16 +363,12 @@ class Game {
         // Draw tile boundary
         this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
 
-        // Determine tile type
+        // Determine tile type (only road or grass)
         const isHorizontalRoad = Math.abs(tileY % 8) <= 1;
         const isVerticalRoad = Math.abs(tileX % 10) <= 1;
-        const diag1 = (tileX + tileY) % 15;
-        const diag2 = (tileX - tileY) % 12;
-        const isMud = (diag1 >= 7 && diag1 <= 8) || Math.abs(diag2) <= 1;
 
         let tileType = 'grass';
         if (isHorizontalRoad || isVerticalRoad) tileType = 'road';
-        if (isMud) tileType = 'mud';
 
         // Draw tile info
         const terrain = this.graphicsManager.assets.terrain[tileType];
