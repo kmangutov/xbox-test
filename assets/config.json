@@ -6,10 +6,10 @@
     "defaultTerrain": "road"
   },
   "physics": {
-    "maxSpeed": 3.5,
-    "acceleration": 0.12,
+    "maxSpeed": 5.0,
+    "acceleration": 0.18,
     "deceleration": 0.1,
-    "turnSpeed": 0.05,
+    "turnSpeed": 0.06,
     "friction": 0.02
   },
   "input": {

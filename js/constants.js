@@ -54,16 +54,24 @@ const GameConstants = {
       patchDensity: 0.15,  // Probability of a patch per area
       patchMinSize: 3,
       patchMaxSize: 8,
-      colorVariations: ['#4ecca3', '#45b88f', '#3ea67c']
+      colorVariations: ['#4ecca3', '#45b88f', '#3ea67c'],
+
+      // Road edge overgrowth
+      overgrowth: {
+        enabled: true,
+        density: 0.3,      // Probability per road edge tile
+        maxSize: 12,       // Max size of overgrowth patches
+        offset: 15         // How far from edge they can appear
+      }
     },
 
     // Mud circles
     mud: {
-      circleRadius: 50,
-      overlap: 0.7,
-      baseColor: '#8b6f47',
-      darkColor: '#6d5635',
-      alpha: 0.3
+      circleRadius: 35,       // Smaller circles for more concentrated patches
+      circleCount: 2,         // Fewer circles per tile (more sparse)
+      baseColor: '#6d5635',   // Darker, muddier brown
+      darkColor: '#534429',   // Even darker variation
+      alpha: 0.6              // Less transparent, more visible
     }
   },
 

@@ -158,6 +158,14 @@ class GraphicsManager {
           const isIntersection = isHorizontalRoad && isVerticalRoad;
           this.drawRoadMarkings(ctx, tileX, tileY, screenX, screenY, tileSize, isHorizontalRoad, isVerticalRoad, isIntersection);
         }
+
+        // Draw grass overgrowth on road edges
+        if (tileType === 'road' && GameConstants.terrain.grass.overgrowth.enabled) {
+          const isIntersection = isHorizontalRoad && isVerticalRoad;
+          if (!isIntersection) {
+            this.drawRoadOvergrowth(ctx, tileX, tileY, screenX, screenY, tileSize, isHorizontalRoad, isVerticalRoad);
+          }
+        }
       }
     }
   }
@@ -200,10 +208,10 @@ class GraphicsManager {
     ctx.save();
     ctx.globalAlpha = cfg.alpha;
 
-    // Multiple circles for irregular patches
-    for (let i = 0; i < 3; i++) {
-      const offsetX = ((seed * (i + 1) * 7919) % tileSize) - tileSize / 2;
-      const offsetY = ((seed * (i + 1) * 8831) % tileSize) - tileSize / 2;
+    // Fewer circles for sparser mud patches
+    for (let i = 0; i < cfg.circleCount; i++) {
+      const offsetX = ((seed * (i + 1) * 7919) % (tileSize * 0.6)) - tileSize * 0.3;
+      const offsetY = ((seed * (i + 1) * 8831) % (tileSize * 0.6)) - tileSize * 0.3;
       const color = i % 2 === 0 ? cfg.baseColor : cfg.darkColor;
 
       ctx.fillStyle = color;
@@ -229,50 +237,109 @@ class GraphicsManager {
     const cfg = GameConstants.roadMarkings;
 
     if (isHorizontal && !isVertical) {
-      // Horizontal road markings
-      const roadWidth = tileSize * 2; // Road is 2 tiles wide
-      const centerY = tileY % 8 === 0 ? screenY + tileSize : screenY;
+      // Horizontal road (2 tiles wide, centered on rows where tileY % 8 == 0 or 1)
+      const isTopTile = tileY % 8 === 0;
+      const isBottomTile = tileY % 8 === 1;
 
-      // Center dashed line
-      if (tileX % 2 === 0) {  // Dash every other tile
+      // Center dashed line (only on top tile)
+      if (isTopTile && tileX % 2 === 0) {
         ctx.fillStyle = cfg.centerLine.color;
         ctx.fillRect(
           screenX,
-          centerY - cfg.centerLine.width / 2,
+          screenY + tileSize - cfg.centerLine.width / 2,
           cfg.centerLine.dashLength,
           cfg.centerLine.width
         );
       }
 
-      // Edge shoulders
+      // Edge shoulders (solid lines)
       ctx.fillStyle = cfg.shoulder.color;
-      // Top edge
-      ctx.fillRect(screenX, screenY + cfg.shoulder.offset, tileSize, cfg.shoulder.width);
-      // Bottom edge
-      ctx.fillRect(screenX, screenY + roadWidth - cfg.shoulder.offset, tileSize, cfg.shoulder.width);
+      if (isTopTile) {
+        // Top edge of road
+        ctx.fillRect(screenX, screenY + cfg.shoulder.offset, tileSize, cfg.shoulder.width);
+      }
+      if (isBottomTile) {
+        // Bottom edge of road
+        ctx.fillRect(screenX, screenY + tileSize - cfg.shoulder.offset - cfg.shoulder.width, tileSize, cfg.shoulder.width);
+      }
 
     } else if (isVertical && !isHorizontal) {
-      // Vertical road markings
-      const roadWidth = tileSize * 2; // Road is 2 tiles wide
-      const centerX = tileX % 10 === 0 ? screenX + tileSize : screenX;
+      // Vertical road (2 tiles wide, centered on columns where tileX % 10 == 0 or 1)
+      const isLeftTile = tileX % 10 === 0;
+      const isRightTile = tileX % 10 === 1;
 
-      // Center dashed line
-      if (tileY % 2 === 0) {  // Dash every other tile
+      // Center dashed line (only on left tile)
+      if (isLeftTile && tileY % 2 === 0) {
         ctx.fillStyle = cfg.centerLine.color;
         ctx.fillRect(
-          centerX - cfg.centerLine.width / 2,
+          screenX + tileSize - cfg.centerLine.width / 2,
           screenY,
           cfg.centerLine.width,
           cfg.centerLine.dashLength
         );
       }
 
-      // Edge shoulders
+      // Edge shoulders (solid lines)
       ctx.fillStyle = cfg.shoulder.color;
-      // Left edge
-      ctx.fillRect(screenX + cfg.shoulder.offset, screenY, cfg.shoulder.width, tileSize);
-      // Right edge
-      ctx.fillRect(screenX + roadWidth - cfg.shoulder.offset, screenY, cfg.shoulder.width, tileSize);
+      if (isLeftTile) {
+        // Left edge of road
+        ctx.fillRect(screenX + cfg.shoulder.offset, screenY, cfg.shoulder.width, tileSize);
+      }
+      if (isRightTile) {
+        // Right edge of road
+        ctx.fillRect(screenX + tileSize - cfg.shoulder.offset - cfg.shoulder.width, screenY, cfg.shoulder.width, tileSize);
+      }
+    }
+  }
+
+  drawRoadOvergrowth(ctx, tileX, tileY, screenX, screenY, tileSize, isHorizontal, isVertical) {
+    const cfg = GameConstants.terrain.grass.overgrowth;
+    const seed = tileX * 73856093 ^ tileY * 19349663;
+    const rand = (seed % 1000) / 1000;
+
+    if (rand > cfg.density) return; // Skip if no overgrowth
+
+    const colors = GameConstants.terrain.grass.colorVariations;
+    const patchColor = colors[Math.abs(seed) % colors.length];
+    const patchSize = (Math.abs((seed * 7919) % 100) / 100) * cfg.maxSize + 5;
+
+    ctx.fillStyle = patchColor;
+
+    if (isHorizontal && !isVertical) {
+      const isTopTile = tileY % 8 === 0;
+      const isBottomTile = tileY % 8 === 1;
+
+      // Overgrowth on top edge
+      if (isTopTile) {
+        const patchX = screenX + ((seed * 8831) % tileSize);
+        const patchY = screenY + ((seed * 9973) % cfg.offset);
+        ctx.fillRect(patchX, patchY, patchSize, patchSize);
+      }
+
+      // Overgrowth on bottom edge
+      if (isBottomTile) {
+        const patchX = screenX + ((seed * 8831) % tileSize);
+        const patchY = screenY + tileSize - cfg.offset + ((seed * 9973) % cfg.offset);
+        ctx.fillRect(patchX, patchY, patchSize, patchSize);
+      }
+
+    } else if (isVertical && !isHorizontal) {
+      const isLeftTile = tileX % 10 === 0;
+      const isRightTile = tileX % 10 === 1;
+
+      // Overgrowth on left edge
+      if (isLeftTile) {
+        const patchX = screenX + ((seed * 8831) % cfg.offset);
+        const patchY = screenY + ((seed * 9973) % tileSize);
+        ctx.fillRect(patchX, patchY, patchSize, patchSize);
+      }
+
+      // Overgrowth on right edge
+      if (isRightTile) {
+        const patchX = screenX + tileSize - cfg.offset + ((seed * 8831) % cfg.offset);
+        const patchY = screenY + ((seed * 9973) % tileSize);
+        ctx.fillRect(patchX, patchY, patchSize, patchSize);
+      }
     }
   }
 }
