@@ -116,14 +116,16 @@ class GraphicsManager {
 
         // Create winding dirt tracks and roads
         let tileType = 'grass';
+        const isHorizontalRoad = Math.abs(tileY % 8) <= 1;
+        const isVerticalRoad = Math.abs(tileX % 10) <= 1;
 
         // Horizontal road every 8 tiles
-        if (Math.abs(tileY % 8) <= 1) {
+        if (isHorizontalRoad) {
           tileType = 'road';
         }
 
         // Vertical road every 10 tiles
-        if (Math.abs(tileX % 10) <= 1) {
+        if (isVerticalRoad) {
           tileType = 'road';
         }
 
@@ -139,8 +141,138 @@ class GraphicsManager {
           tileType = 'mud';
         }
 
-        this.drawTerrain(ctx, tileType, x - scrollX, y - scrollY, tileSize, tileSize);
+        const screenX = x - scrollX;
+        const screenY = y - scrollY;
+
+        // Draw base terrain
+        if (tileType === 'grass') {
+          this.drawGrassTile(ctx, tileX, tileY, screenX, screenY, tileSize);
+        } else if (tileType === 'mud') {
+          this.drawMudTile(ctx, tileX, tileY, screenX, screenY, tileSize);
+        } else {
+          this.drawTerrain(ctx, tileType, screenX, screenY, tileSize, tileSize);
+        }
+
+        // Draw road markings if on road
+        if (tileType === 'road' && GameConstants.roadMarkings.enabled) {
+          const isIntersection = isHorizontalRoad && isVerticalRoad;
+          this.drawRoadMarkings(ctx, tileX, tileY, screenX, screenY, tileSize, isHorizontalRoad, isVerticalRoad, isIntersection);
+        }
       }
+    }
+  }
+
+  drawGrassTile(ctx, tileX, tileY, screenX, screenY, tileSize) {
+    const tile = this.assets.terrain['grass'];
+    ctx.fillStyle = tile.color;
+    ctx.fillRect(screenX, screenY, tileSize, tileSize);
+
+    // Add patch variation
+    const seed = tileX * 73856093 ^ tileY * 19349663;
+    const rand = (seed % 1000) / 1000;
+
+    if (rand < GameConstants.terrain.grass.patchDensity) {
+      const colors = GameConstants.terrain.grass.colorVariations;
+      const patchColor = colors[Math.abs(seed) % colors.length];
+
+      const patchSize = GameConstants.terrain.grass.patchMinSize +
+        (Math.abs((seed * 7919) % 100) / 100) *
+        (GameConstants.terrain.grass.patchMaxSize - GameConstants.terrain.grass.patchMinSize);
+
+      const patchX = screenX + ((seed * 8831) % tileSize);
+      const patchY = screenY + ((seed * 9973) % tileSize);
+
+      ctx.fillStyle = patchColor;
+      ctx.fillRect(patchX, patchY, patchSize, patchSize);
+    }
+  }
+
+  drawMudTile(ctx, tileX, tileY, screenX, screenY, tileSize) {
+    // Draw grass base first
+    const grassTile = this.assets.terrain['grass'];
+    ctx.fillStyle = grassTile.color;
+    ctx.fillRect(screenX, screenY, tileSize, tileSize);
+
+    // Draw overlapping mud circles
+    const cfg = GameConstants.terrain.mud;
+    const seed = tileX * 73856093 ^ tileY * 19349663;
+
+    ctx.save();
+    ctx.globalAlpha = cfg.alpha;
+
+    // Multiple circles for irregular patches
+    for (let i = 0; i < 3; i++) {
+      const offsetX = ((seed * (i + 1) * 7919) % tileSize) - tileSize / 2;
+      const offsetY = ((seed * (i + 1) * 8831) % tileSize) - tileSize / 2;
+      const color = i % 2 === 0 ? cfg.baseColor : cfg.darkColor;
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(
+        screenX + tileSize / 2 + offsetX,
+        screenY + tileSize / 2 + offsetY,
+        cfg.circleRadius,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  drawRoadMarkings(ctx, tileX, tileY, screenX, screenY, tileSize, isHorizontal, isVertical, isIntersection) {
+    if (isIntersection) {
+      return; // No markings in intersections
+    }
+
+    const cfg = GameConstants.roadMarkings;
+
+    if (isHorizontal && !isVertical) {
+      // Horizontal road markings
+      const roadWidth = tileSize * 2; // Road is 2 tiles wide
+      const centerY = tileY % 8 === 0 ? screenY + tileSize : screenY;
+
+      // Center dashed line
+      if (tileX % 2 === 0) {  // Dash every other tile
+        ctx.fillStyle = cfg.centerLine.color;
+        ctx.fillRect(
+          screenX,
+          centerY - cfg.centerLine.width / 2,
+          cfg.centerLine.dashLength,
+          cfg.centerLine.width
+        );
+      }
+
+      // Edge shoulders
+      ctx.fillStyle = cfg.shoulder.color;
+      // Top edge
+      ctx.fillRect(screenX, screenY + cfg.shoulder.offset, tileSize, cfg.shoulder.width);
+      // Bottom edge
+      ctx.fillRect(screenX, screenY + roadWidth - cfg.shoulder.offset, tileSize, cfg.shoulder.width);
+
+    } else if (isVertical && !isHorizontal) {
+      // Vertical road markings
+      const roadWidth = tileSize * 2; // Road is 2 tiles wide
+      const centerX = tileX % 10 === 0 ? screenX + tileSize : screenX;
+
+      // Center dashed line
+      if (tileY % 2 === 0) {  // Dash every other tile
+        ctx.fillStyle = cfg.centerLine.color;
+        ctx.fillRect(
+          centerX - cfg.centerLine.width / 2,
+          screenY,
+          cfg.centerLine.width,
+          cfg.centerLine.dashLength
+        );
+      }
+
+      // Edge shoulders
+      ctx.fillStyle = cfg.shoulder.color;
+      // Left edge
+      ctx.fillRect(screenX + cfg.shoulder.offset, screenY, cfg.shoulder.width, tileSize);
+      // Right edge
+      ctx.fillRect(screenX + roadWidth - cfg.shoulder.offset, screenY, cfg.shoulder.width, tileSize);
     }
   }
 }

@@ -60,10 +60,27 @@ class Game {
       this.car.carType = this.config.game.defaultCar;
 
       console.log('Game initialized');
+      this.setupDebugKeys();
       this.start();
     } catch (error) {
       console.error('Failed to initialize game:', error);
     }
+  }
+
+  setupDebugKeys() {
+    window.addEventListener('keydown', (e) => {
+      // M - Toggle road markings
+      if (e.key === 'm' || e.key === 'M') {
+        GameConstants.roadMarkings.enabled = !GameConstants.roadMarkings.enabled;
+        console.log('Road markings:', GameConstants.roadMarkings.enabled ? 'ON' : 'OFF');
+      }
+
+      // T - Toggle terrain debug mode
+      if (e.key === 't' || e.key === 'T') {
+        GameConstants.debug.terrainDebugMode = !GameConstants.debug.terrainDebugMode;
+        console.log('Terrain debug mode:', GameConstants.debug.terrainDebugMode ? 'ON' : 'OFF');
+      }
+    });
   }
 
   start() {
@@ -204,6 +221,11 @@ class Game {
       this.car.rotation
     );
 
+    // Draw terrain debug overlay if enabled
+    if (GameConstants.debug.terrainDebugMode) {
+      this.drawTerrainDebugOverlay();
+    }
+
     // Draw debug info
     this.drawDebugInfo();
   }
@@ -321,6 +343,63 @@ class Game {
     }
   }
 
+  drawTerrainDebugOverlay() {
+    const tileSize = 100;
+    const startX = Math.floor(this.scrollX / tileSize) * tileSize;
+    const startY = Math.floor(this.scrollY / tileSize) * tileSize;
+
+    this.ctx.save();
+    this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    this.ctx.font = '10px monospace';
+    this.ctx.lineWidth = 1;
+
+    // Draw grid lines and tile info
+    for (let y = startY; y < this.scrollY + this.canvas.height + tileSize; y += tileSize) {
+      for (let x = startX; x < this.scrollX + this.canvas.width + tileSize; x += tileSize) {
+        const screenX = x - this.scrollX;
+        const screenY = y - this.scrollY;
+
+        // Skip if off-screen
+        if (screenX > this.canvas.width || screenY > this.canvas.height) continue;
+
+        const tileX = Math.floor(x / tileSize);
+        const tileY = Math.floor(y / tileSize);
+
+        // Draw tile boundary
+        this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+
+        // Determine tile type
+        const isHorizontalRoad = Math.abs(tileY % 8) <= 1;
+        const isVerticalRoad = Math.abs(tileX % 10) <= 1;
+        const diag1 = (tileX + tileY) % 15;
+        const diag2 = (tileX - tileY) % 12;
+        const isMud = (diag1 >= 7 && diag1 <= 8) || Math.abs(diag2) <= 1;
+
+        let tileType = 'grass';
+        if (isHorizontalRoad || isVerticalRoad) tileType = 'road';
+        if (isMud) tileType = 'mud';
+
+        // Draw tile info
+        const terrain = this.graphicsManager.assets.terrain[tileType];
+        const speedMult = terrain ? terrain.speedMultiplier : 1.0;
+
+        this.ctx.fillText(`${tileX},${tileY}`, screenX + 5, screenY + 15);
+        this.ctx.fillText(tileType, screenX + 5, screenY + 28);
+        this.ctx.fillText(`×${speedMult}`, screenX + 5, screenY + 41);
+      }
+    }
+
+    // Draw car position marker
+    this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.arc(this.canvas.width / 2, this.canvas.height / 2, 30, 0, Math.PI * 2);
+    this.ctx.stroke();
+
+    this.ctx.restore();
+  }
+
   drawDebugInfo() {
     const debugEl = document.getElementById('debug');
     if (debugEl) {
@@ -341,6 +420,14 @@ Car: ${this.car.carType}`;
 --- GAMEPAD RAW ---
 LX: ${input.rawGamepadLX.toFixed(3)}
 LY: ${input.rawGamepadLY.toFixed(3)}`;
+      }
+
+      // Show debug key hints
+      if (GameConstants.debug.terrainDebugMode || GameConstants.roadMarkings.enabled) {
+        debugText += `
+--- DEBUG KEYS ---
+M: Markings ${GameConstants.roadMarkings.enabled ? 'ON' : 'OFF'}
+T: Terrain ${GameConstants.debug.terrainDebugMode ? 'ON' : 'OFF'}`;
       }
 
       debugEl.textContent = debugText.trim();
