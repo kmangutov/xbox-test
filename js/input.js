@@ -124,6 +124,24 @@ class InputManager {
       this.gamepad.axes = gamepad.axes.slice(); // Store all axes
       this.gamepad.buttons = gamepad.buttons.slice(); // Store all buttons
       this.gamepad.id = gamepad.id;
+    } else {
+      // Not finding gamepad - debug why
+      if (this.gamepad.connected) {
+        console.log('Gamepad disconnected');
+      }
+      this.gamepad.connected = false;
+
+      // Log what we're seeing every 60 frames (~1 second)
+      if (!this._debugFrameCount) this._debugFrameCount = 0;
+      this._debugFrameCount++;
+      if (this._debugFrameCount % 60 === 0) {
+        const allGamepads = Array.from(gamepads);
+        console.log('Gamepad poll debug:', {
+          apiAvailable: !!navigator.getGamepads,
+          gamepadsCount: allGamepads.length,
+          gamepadsFound: allGamepads.map((g, i) => g ? `[${i}]: ${g.id} (connected: ${g.connected})` : `[${i}]: null`)
+        });
+      }
     }
   }
 
