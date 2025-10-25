@@ -470,37 +470,18 @@ Rotation: ${(this.car.rotation * 180 / Math.PI).toFixed(0)}°
 Position: (${Math.floor(this.scrollX)}, ${Math.floor(this.scrollY)})
 Car: ${this.car.carType}`;
 
-      // Show raw gamepad values if enabled in constants
-      if (GameConstants.debug.showGamepadValues && input.rawGamepadLX !== undefined) {
+      // Show all gamepad axes values if gamepad connected
+      if (GameConstants.debug.showGamepadValues && this.inputManager.gamepad.connected && this.inputManager.gamepad.axes) {
         debugText += `
---- GAMEPAD DEBUG ---
-Steering Axis ${input.steeringAxisUsed}: ${input.rawGamepadLX.toFixed(3)}
-Accel Axis ${input.accelAxisUsed}: ${input.rawGamepadLY.toFixed(3)}`;
-
-        // Show all axes if gamepad is connected
-        if (this.inputManager.gamepad.connected && this.inputManager.gamepad.axes) {
+--- GAMEPAD AXES ---`;
+        this.inputManager.gamepad.axes.forEach((value, index) => {
+          const marker = index === GameConstants.gamepad.steeringAxis ? ' [STEER]' :
+                        index === GameConstants.gamepad.accelerationAxis ? ' [ACCEL]' : '';
           debugText += `
---- ALL AXES (non-zero) ---`;
-          this.inputManager.gamepad.axes.forEach((value, index) => {
-            if (Math.abs(value) > 0.01) { // Only show non-zero axes
-              debugText += `
-Axis ${index}: ${value.toFixed(3)}`;
-            }
-          });
-
-          // Show gamepad ID
-          if (this.inputManager.gamepad.id) {
-            debugText += `
-ID: ${this.inputManager.gamepad.id.substring(0, 30)}`;
-          }
-
-          debugText += `
-
-Controls:
-0-9: Set steering axis
-Shift+0-9: Set accel axis
-G: Toggle gamepad debug`;
-        }
+A${index}: ${value.toFixed(3)}${marker}`;
+        });
+        debugText += `
+Keys: 0-9=Steer, Shift+0-9=Accel`;
       }
 
       // Show debug key hints
