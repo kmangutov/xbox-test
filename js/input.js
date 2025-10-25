@@ -131,16 +131,22 @@ class InputManager {
       }
       this.gamepad.connected = false;
 
-      // Log what we're seeing every 60 frames (~1 second)
+      // Log what we're seeing every 60 frames (~1 second) - human readable format
       if (!this._debugFrameCount) this._debugFrameCount = 0;
       this._debugFrameCount++;
       if (this._debugFrameCount % 60 === 0) {
         const allGamepads = Array.from(gamepads);
-        console.log('Gamepad poll debug:', {
-          apiAvailable: !!navigator.getGamepads,
-          gamepadsCount: allGamepads.length,
-          gamepadsFound: allGamepads.map((g, i) => g ? `[${i}]: ${g.id} (connected: ${g.connected})` : `[${i}]: null`)
+        console.log('=== GAMEPAD POLL DEBUG ===');
+        console.log('API Available:', navigator.getGamepads ? 'YES' : 'NO');
+        console.log('Slots checked:', allGamepads.length);
+        allGamepads.forEach((g, i) => {
+          if (g) {
+            console.log(`  [${i}]: ${g.id} - Connected: ${g.connected}`);
+          } else {
+            console.log(`  [${i}]: (empty)`);
+          }
         });
+        console.log('==========================');
       }
     }
   }

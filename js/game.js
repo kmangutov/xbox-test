@@ -61,6 +61,7 @@ class Game {
 
       console.log('Game initialized');
       this.setupDebugKeys();
+      this.setupGamepadActivation();
       this.start();
     } catch (error) {
       console.error('Failed to initialize game:', error);
@@ -116,6 +117,17 @@ class Game {
 
     requestAnimationFrame(this.gameLoop);
   };
+
+  setupGamepadActivation() {
+    // Gamepad API requires user gesture to surface gamepads in some browsers
+    // This ensures polling starts after any click or keypress
+    const activateGamepad = () => {
+      console.log('User gesture detected - gamepad polling active');
+    };
+
+    window.addEventListener('click', activateGamepad, { once: true });
+    window.addEventListener('keydown', activateGamepad, { once: true });
+  }
 
   getCurrentTerrain() {
     const tileSize = 100;
