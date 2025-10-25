@@ -470,8 +470,8 @@ Rotation: ${(this.car.rotation * 180 / Math.PI).toFixed(0)}°
 Position: (${Math.floor(this.scrollX)}, ${Math.floor(this.scrollY)})
 Car: ${this.car.carType}`;
 
-      // Show all gamepad axes values if gamepad connected
-      if (GameConstants.debug.showGamepadValues && this.inputManager.gamepad.connected && this.inputManager.gamepad.axes) {
+      // Show all gamepad axes values if gamepad connected (always show if connected)
+      if (this.inputManager && this.inputManager.gamepad && this.inputManager.gamepad.connected && this.inputManager.gamepad.axes) {
         debugText += `
 --- GAMEPAD AXES ---`;
         this.inputManager.gamepad.axes.forEach((value, index) => {
