@@ -80,6 +80,26 @@ class Game {
         GameConstants.debug.terrainDebugMode = !GameConstants.debug.terrainDebugMode;
         console.log('Terrain debug mode:', GameConstants.debug.terrainDebugMode ? 'ON' : 'OFF');
       }
+
+      // Number keys 0-9 - Change steering axis
+      if (e.key >= '0' && e.key <= '9') {
+        const axisNum = parseInt(e.key);
+        GameConstants.gamepad.steeringAxis = axisNum;
+        console.log(`Steering axis changed to: ${axisNum}`);
+      }
+
+      // Shift + Number keys - Change acceleration axis
+      if (e.shiftKey && e.key >= '0' && e.key <= '9') {
+        const axisNum = parseInt(e.key);
+        GameConstants.gamepad.accelerationAxis = axisNum;
+        console.log(`Acceleration axis changed to: ${axisNum}`);
+      }
+
+      // G - Toggle gamepad debug info
+      if (e.key === 'g' || e.key === 'G') {
+        GameConstants.debug.showGamepadValues = !GameConstants.debug.showGamepadValues;
+        console.log('Gamepad debug:', GameConstants.debug.showGamepadValues ? 'ON' : 'OFF');
+      }
     });
   }
 
@@ -453,9 +473,34 @@ Car: ${this.car.carType}`;
       // Show raw gamepad values if enabled in constants
       if (GameConstants.debug.showGamepadValues && input.rawGamepadLX !== undefined) {
         debugText += `
---- GAMEPAD RAW ---
-LX: ${input.rawGamepadLX.toFixed(3)}
-LY: ${input.rawGamepadLY.toFixed(3)}`;
+--- GAMEPAD DEBUG ---
+Steering Axis ${input.steeringAxisUsed}: ${input.rawGamepadLX.toFixed(3)}
+Accel Axis ${input.accelAxisUsed}: ${input.rawGamepadLY.toFixed(3)}`;
+
+        // Show all axes if gamepad is connected
+        if (this.inputManager.gamepad.connected && this.inputManager.gamepad.axes) {
+          debugText += `
+--- ALL AXES (non-zero) ---`;
+          this.inputManager.gamepad.axes.forEach((value, index) => {
+            if (Math.abs(value) > 0.01) { // Only show non-zero axes
+              debugText += `
+Axis ${index}: ${value.toFixed(3)}`;
+            }
+          });
+
+          // Show gamepad ID
+          if (this.inputManager.gamepad.id) {
+            debugText += `
+ID: ${this.inputManager.gamepad.id.substring(0, 30)}`;
+          }
+
+          debugText += `
+
+Controls:
+0-9: Set steering axis
+Shift+0-9: Set accel axis
+G: Toggle gamepad debug`;
+        }
       }
 
       // Show debug key hints

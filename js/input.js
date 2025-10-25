@@ -110,8 +110,20 @@ class InputManager {
     const gamepad = Array.from(gamepads).find(g => g && g.connected);
 
     if (gamepad) {
+      if (!this.gamepad.connected) {
+        // First connection - log all gamepad info
+        console.log('=== GAMEPAD CONNECTED ===');
+        console.log('ID:', gamepad.id);
+        console.log('Mapping:', gamepad.mapping);
+        console.log('Axes count:', gamepad.axes.length);
+        console.log('Buttons count:', gamepad.buttons.length);
+        console.log('========================');
+      }
+
       this.gamepad.connected = true;
-      this.gamepad.axes = gamepad.axes.slice(0, 4);
+      this.gamepad.axes = gamepad.axes.slice(); // Store all axes
+      this.gamepad.buttons = gamepad.buttons.slice(); // Store all buttons
+      this.gamepad.id = gamepad.id;
     }
   }
 
@@ -133,14 +145,19 @@ class InputManager {
     if (this.keyboard.accelerate) this.state.acceleration = 1;
     if (this.keyboard.brake) this.state.brake = 1;
 
-    // Gamepad input (left stick)
+    // Gamepad input (configurable axes)
     if (this.gamepad.connected) {
-      const rawLX = this.gamepad.axes[0] || 0;
-      const rawLY = this.gamepad.axes[1] || 0;
+      const steeringAxis = GameConstants.gamepad.steeringAxis;
+      const accelAxis = GameConstants.gamepad.accelerationAxis;
+
+      const rawLX = this.gamepad.axes[steeringAxis] || 0;
+      const rawLY = this.gamepad.axes[accelAxis] || 0;
 
       // Store raw values for debugging
       this.state.rawGamepadLX = rawLX;
       this.state.rawGamepadLY = rawLY;
+      this.state.steeringAxisUsed = steeringAxis;
+      this.state.accelAxisUsed = accelAxis;
 
       // Apply deadzone
       const dz = GameConstants.gamepad.deadzone;

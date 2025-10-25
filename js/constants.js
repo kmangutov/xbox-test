@@ -16,6 +16,10 @@ const GameConstants = {
     steeringMax: 0.25,
     deadzone: 0.05,
 
+    // Axis mapping (can be changed with number keys 0-5)
+    steeringAxis: 0,  // Which axis to use for steering (default: 0)
+    accelerationAxis: 1,  // Which axis to use for acceleration (default: 1)
+
     // TODO: TEMPORARY - Remove when pedal controls are ready
     // When true, any steering input automatically applies acceleration
     // This allows driving with just the steering stick
