@@ -470,18 +470,33 @@ Rotation: ${(this.car.rotation * 180 / Math.PI).toFixed(0)}°
 Position: (${Math.floor(this.scrollX)}, ${Math.floor(this.scrollY)})
 Car: ${this.car.carType}`;
 
-      // Show all gamepad axes values if gamepad connected (always show if connected)
-      if (this.inputManager && this.inputManager.gamepad && this.inputManager.gamepad.connected && this.inputManager.gamepad.axes) {
+      // Always show gamepad status for debugging
+      debugText += `
+--- GAMEPAD ---`;
+
+      if (this.inputManager && this.inputManager.gamepad) {
+        const gp = this.inputManager.gamepad;
         debugText += `
---- GAMEPAD AXES ---`;
-        this.inputManager.gamepad.axes.forEach((value, index) => {
-          const marker = index === GameConstants.gamepad.steeringAxis ? ' [STEER]' :
-                        index === GameConstants.gamepad.accelerationAxis ? ' [ACCEL]' : '';
+Connected: ${gp.connected ? 'YES' : 'NO'}`;
+
+        if (gp.connected && gp.axes && gp.axes.length > 0) {
           debugText += `
+ID: ${gp.id || 'Unknown'}`;
+          gp.axes.forEach((value, index) => {
+            const marker = index === GameConstants.gamepad.steeringAxis ? ' [STEER]' :
+                          index === GameConstants.gamepad.accelerationAxis ? ' [ACCEL]' : '';
+            debugText += `
 A${index}: ${value.toFixed(3)}${marker}`;
-        });
-        debugText += `
+          });
+          debugText += `
 Keys: 0-9=Steer, Shift+0-9=Accel`;
+        } else if (gp.connected) {
+          debugText += `
+Axes: ${gp.axes ? gp.axes.length : 'undefined'}`;
+        }
+      } else {
+        debugText += `
+InputManager: ${this.inputManager ? 'OK' : 'MISSING'}`;
       }
 
       // Show debug key hints
