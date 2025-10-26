@@ -238,6 +238,9 @@ class Game {
       this.car.speed = Math.max(0, this.car.speed - terrainFriction);
     }
 
+    // Update wheel interface with current speed (for auto-parking logic)
+    this.inputManager.wheelInterface.updateVehicleSpeed(this.car.speed);
+
     // Calculate velocity based on rotation
     this.car.vx = Math.sin(this.car.rotation) * this.car.speed;
     this.car.vy = -Math.cos(this.car.rotation) * this.car.speed;

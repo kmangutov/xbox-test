@@ -23,7 +23,7 @@ const GameConstants = {
     // TODO: TEMPORARY - Remove when pedal controls are ready
     // When true, any steering input automatically applies acceleration
     // This allows driving with just the steering stick
-    autoAccelerateOnSteering: true,
+    autoAccelerateOnSteering: false,
     autoAccelerateAmount: 1.0  // 0.0 to 1.0, how much to accelerate when steering
   },
 
