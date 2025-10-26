@@ -165,6 +165,12 @@ class Game {
     wheelInterface.on('onButtonPress', (buttonIndex, buttonName, value) => {
       // Could add visual feedback for any button press
     });
+
+    // Vehicle change (A button)
+    wheelInterface.on('onVehicleChange', (vehicleId, vehicleName) => {
+      this.car.carType = vehicleId;
+      console.log(`Now driving: ${vehicleName}`);
+    });
   }
 
   getCurrentTerrain() {

@@ -61,10 +61,15 @@ class XboxWheelInterface {
       onEngineStop: null,
       onTractionControlToggle: null,
       onButtonPress: null,
+      onVehicleChange: null,
     };
 
     // Button press tracking for single-press actions
     this.previousButtonState = {};
+
+    // Vehicle cycling
+    this.availableVehicles = ['sedan', 'truck', 'sports'];
+    this.currentVehicleIndex = 0;
   }
 
   /**
@@ -347,10 +352,43 @@ class XboxWheelInterface {
 
   /**
    * Color buttons (A, B, X, Y)
+   * A = cycle vehicle
+   * B, X, Y = reserved for other features
    */
   handleColorButton(buttonName) {
-    console.log(`${buttonName} button pressed - could be horn, lights, etc.`);
-    // TODO: Implement wheel-specific behavior
+    switch (buttonName) {
+      case 'A':
+        this.cycleVehicle();
+        break;
+      case 'B':
+        console.log('B button pressed - horn/lights (TODO)');
+        break;
+      case 'X':
+        console.log('X button pressed - reserved (TODO)');
+        break;
+      case 'Y':
+        console.log('Y button pressed - reserved (TODO)');
+        break;
+    }
+  }
+
+  /**
+   * Cycle to the next vehicle (A button)
+   */
+  cycleVehicle() {
+    this.currentVehicleIndex = (this.currentVehicleIndex + 1) % this.availableVehicles.length;
+    const vehicleId = this.availableVehicles[this.currentVehicleIndex];
+    const vehicleNames = {
+      'sedan': 'Sedan',
+      'truck': 'Monster Truck',
+      'sports': 'Sports Car'
+    };
+
+    console.log(`🚗 Vehicle changed to: ${vehicleNames[vehicleId]}`);
+
+    if (this.callbacks.onVehicleChange) {
+      this.callbacks.onVehicleChange(vehicleId, vehicleNames[vehicleId]);
+    }
   }
 
   /**
