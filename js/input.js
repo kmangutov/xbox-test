@@ -126,22 +126,26 @@ class InputManager {
       this.gamepad.buttons = gamepad.buttons.slice(); // Store all buttons
       this.gamepad.id = gamepad.id;
 
-      // Log button presses (detect press vs release)
+      // Log button presses (on state change)
+      if (!this.gamepad.previousButtons) {
+        this.gamepad.previousButtons = {};
+      }
+
       this.gamepad.buttons.forEach((button, index) => {
         const pressed = button.pressed;
-        const wasPressed = this.gamepad.previousButtons[index];
+        const wasPressed = this.gamepad.previousButtons[index] || false;
 
+        // Log on press
         if (pressed && !wasPressed) {
-          console.log(`🎮 Gamepad Button ${index} PRESSED`);
-        } else if (!pressed && wasPressed) {
-          console.log(`🎮 Gamepad Button ${index} RELEASED`);
+          console.log(`🎮 Button ${index} PRESSED (value: ${button.value.toFixed(2)})`);
         }
-      });
+        // Log on release
+        if (!pressed && wasPressed) {
+          console.log(`🎮 Button ${index} RELEASED`);
+        }
 
-      // Store current button state for next frame
-      this.gamepad.previousButtons = {};
-      this.gamepad.buttons.forEach((button, index) => {
-        this.gamepad.previousButtons[index] = button.pressed;
+        // Store for next frame
+        this.gamepad.previousButtons[index] = pressed;
       });
     } else {
       // Not finding gamepad - debug why
