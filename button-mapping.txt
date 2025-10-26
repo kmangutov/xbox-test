@@ -1,0 +1,27 @@
+
+
+
+5-> right paddle
+4-> left paddle
+
+right half of controller
+A->0
+B->1
+
+left half of controller
+Y->3
+X->2
+
+small settings button -> 9
+small displkay button -> 8
+
+
+right pedal/gas pedal -> 7 (with a value)
+left pedal/brake -> 6 with a value
+
+
+engine start-> buttons 12 through 15
+
+traction controll setting
+switch up -> 9
+    switfh down -> 8

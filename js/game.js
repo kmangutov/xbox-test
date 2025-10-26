@@ -62,6 +62,7 @@ class Game {
       console.log('Game initialized');
       this.setupDebugKeys();
       this.setupGamepadActivation();
+      this.setupWheelInterfaceCallbacks();
       this.start();
     } catch (error) {
       console.error('Failed to initialize game:', error);
@@ -127,6 +128,43 @@ class Game {
 
     window.addEventListener('click', activateGamepad, { once: true });
     window.addEventListener('keydown', activateGamepad, { once: true });
+  }
+
+  setupWheelInterfaceCallbacks() {
+    // Register callbacks for wheel interface events
+    const wheelInterface = this.inputManager.wheelInterface;
+
+    // Acceleration pedal changes
+    wheelInterface.on('onAccelerationChange', (value) => {
+      // This is already being used in the input state, but can add effects here
+      // e.g., engine sound volume, particle effects, etc.
+    });
+
+    // Brake pedal changes
+    wheelInterface.on('onBrakeChange', (value) => {
+      // e.g., brake light effects, brake sound, etc.
+    });
+
+    // Engine start/stop
+    wheelInterface.on('onEngineStart', () => {
+      console.log('🏎️ Car engine started - gameplay enabled');
+      // Could prevent movement until engine starts
+    });
+
+    wheelInterface.on('onEngineStop', () => {
+      console.log('🏎️ Car engine stopped');
+    });
+
+    // Traction control toggle
+    wheelInterface.on('onTractionControlToggle', (enabled) => {
+      console.log(`Traction control: ${enabled ? 'ON' : 'OFF'}`);
+      GameConstants.physics.tractionControl = enabled;
+    });
+
+    // Generic button press handler
+    wheelInterface.on('onButtonPress', (buttonIndex, buttonName, value) => {
+      // Could add visual feedback for any button press
+    });
   }
 
   getCurrentTerrain() {

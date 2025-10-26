@@ -5,6 +5,10 @@
 class InputManager {
   constructor(config) {
     this.config = config;
+
+    // Initialize wheel interface for button/pedal mapping
+    this.wheelInterface = new XboxWheelInterface();
+
     this.state = {
       steering: 0,      // -1 to 1 (left to right)
       acceleration: 0,  // 0 to 1
@@ -126,27 +130,8 @@ class InputManager {
       this.gamepad.buttons = gamepad.buttons.slice(); // Store all buttons
       this.gamepad.id = gamepad.id;
 
-      // Log button presses (on state change)
-      if (!this.gamepad.previousButtons) {
-        this.gamepad.previousButtons = {};
-      }
-
-      this.gamepad.buttons.forEach((button, index) => {
-        const pressed = button.pressed;
-        const wasPressed = this.gamepad.previousButtons[index] || false;
-
-        // Log on press
-        if (pressed && !wasPressed) {
-          console.log(`🎮 Button ${index} PRESSED (value: ${button.value.toFixed(2)})`);
-        }
-        // Log on release
-        if (!pressed && wasPressed) {
-          console.log(`🎮 Button ${index} RELEASED`);
-        }
-
-        // Store for next frame
-        this.gamepad.previousButtons[index] = pressed;
-      });
+      // Process input through wheel interface
+      this.wheelInterface.processGamepadInput(gamepad);
     } else {
       // Not finding gamepad - debug why
       if (this.gamepad.connected) {
@@ -225,12 +210,17 @@ class InputManager {
 
       this.state.steering += steering;
 
-      // TODO: TEMPORARY - Auto-accelerate when steering (remove when pedal controls ready)
-      if (GameConstants.gamepad.autoAccelerateOnSteering && Math.abs(steering) > 0.1) {
+      // Use wheel interface pedal values (gas and brake buttons with analog values)
+      const wheelState = this.wheelInterface.getState();
+      this.state.acceleration = Math.max(this.state.acceleration, wheelState.acceleration);
+      this.state.brake = Math.max(this.state.brake, wheelState.brake);
+
+      // TODO: TEMPORARY - Auto-accelerate when steering if no pedal input
+      if (GameConstants.gamepad.autoAccelerateOnSteering && Math.abs(steering) > 0.1 && wheelState.acceleration === 0) {
         this.state.acceleration = Math.max(this.state.acceleration, GameConstants.gamepad.autoAccelerateAmount);
       }
 
-      // Normal acceleration/brake from Y-axis
+      // Also support Y-axis acceleration/brake for compatibility with standard gamepads
       if (ly > 0) {
         this.state.acceleration = Math.min(1, this.state.acceleration + Math.abs(ly));
       }
