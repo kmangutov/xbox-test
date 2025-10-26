@@ -332,6 +332,9 @@ class Game {
       this.drawTerrainDebugOverlay();
     }
 
+    // Draw gear display (bottom right)
+    this.drawGearDisplay();
+
     // Draw debug info
     this.drawDebugInfo();
   }
@@ -507,6 +510,42 @@ class Game {
     this.ctx.stroke();
 
     this.ctx.restore();
+  }
+
+  drawGearDisplay() {
+    const ctx = this.ctx;
+    const wheelState = this.inputManager.wheelInterface.getState();
+    const gear = wheelState.displayedGear;
+
+    // Position: bottom right corner with padding
+    const padding = 20;
+    const x = this.canvas.width - padding;
+    const y = this.canvas.height - padding;
+
+    // Draw gear display box
+    const boxWidth = 80;
+    const boxHeight = 100;
+    const boxX = x - boxWidth;
+    const boxY = y - boxHeight;
+
+    // Semi-transparent background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+    // Border
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+    // Gear label
+    ctx.fillStyle = '#0f0';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GEAR', boxX + boxWidth / 2, boxY + 20);
+
+    // Gear number - large and prominent
+    ctx.font = 'bold 48px monospace';
+    ctx.fillText(gear.toString(), boxX + boxWidth / 2, boxY + 70);
   }
 
   drawDebugInfo() {

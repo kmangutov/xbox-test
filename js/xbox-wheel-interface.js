@@ -36,9 +36,11 @@ class XboxWheelInterface {
       acceleration: 0,       // 0 to 1 (from gas pedal)
       brake: 0,              // 0 to 1 (from brake pedal)
       gear: 0,               // -1 (Reverse), 0 (Park), 1-3 (gears)
+      displayedGear: 0,      // Gear shown to player (mapped from velocity)
       engineRunning: false,
       tractionControl: true,
       currentSpeed: 0,       // Track vehicle speed for auto-park
+      previousSpeed: 0,      // Previous frame speed for detecting stop
     };
 
     // Gear timers for duration-based acceleration
@@ -110,13 +112,20 @@ class XboxWheelInterface {
   }
 
   /**
-   * Auto-reset to Park when vehicle speed drops below threshold
+   * Auto-reset to Park only when coming from non-zero velocity to zero
+   * This ensures car can start from rest
    */
   updateAutoParking() {
-    // If in a gear (not Park/Reverse) and speed is near 0, auto-park
-    if (this.state.gear > 0 && this.state.currentSpeed < 0.5) {
-      this.setGear(0); // Auto-park
+    // Only auto-park if we had speed and now we don't (velocity drop from moving to stopped)
+    if (this.state.currentSpeed < 0.1) {
+      // Car has stopped
+      if (this.state.previousSpeed > 0.1 && this.state.gear > 0) {
+        // Was moving, now stopped - auto-park
+        this.setGear(0);
+      }
     }
+    // Track velocity for next frame
+    this.state.previousSpeed = this.state.currentSpeed;
   }
 
   /**
@@ -157,6 +166,28 @@ class XboxWheelInterface {
    */
   updateVehicleSpeed(speed) {
     this.state.currentSpeed = speed;
+    this.updateDisplayedGear(speed);
+  }
+
+  /**
+   * Map current speed to displayed gear (0-3)
+   * 0 = Park (stopped)
+   * 1 = Parking lot speeds (~1.7 max)
+   * 2 = Medium speeds (~3.3 max)
+   * 3 = Full speed (~5.0 max)
+   */
+  updateDisplayedGear(speed) {
+    const maxSpeed = 5.0; // From physics config
+
+    if (speed < 0.1) {
+      this.state.displayedGear = 0; // Parked
+    } else if (speed < maxSpeed * 0.34) {
+      this.state.displayedGear = 1; // Low speeds
+    } else if (speed < maxSpeed * 0.67) {
+      this.state.displayedGear = 2; // Medium speeds
+    } else {
+      this.state.displayedGear = 3; // High speeds
+    }
   }
 
   /**
