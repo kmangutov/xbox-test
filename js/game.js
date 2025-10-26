@@ -515,9 +515,13 @@ class Game {
   drawGearDisplay() {
     const ctx = this.ctx;
     const wheelState = this.inputManager.wheelInterface.getState();
+    const inputState = this.inputManager.getState();
     const gear = wheelState.displayedGear;
 
-    // Position: bottom right corner with padding
+    // ===== BOTTOM LEFT: Input displays =====
+    this.drawInputDisplays(ctx, wheelState, inputState);
+
+    // ===== BOTTOM RIGHT: Gear display =====
     const padding = 20;
     const x = this.canvas.width - padding;
     const y = this.canvas.height - padding;
@@ -546,6 +550,104 @@ class Game {
     // Gear number - large and prominent
     ctx.font = 'bold 48px monospace';
     ctx.fillText(gear.toString(), boxX + boxWidth / 2, boxY + 70);
+  }
+
+  drawInputDisplays(ctx, wheelState, inputState) {
+    const padding = 20;
+    const startX = padding;
+    const startY = this.canvas.height - padding;
+
+    // Container dimensions
+    const barWidth = 20;
+    const barHeight = 80;
+    const wheelRadius = 35;
+    const spacing = 30;
+
+    // ===== Gas/Brake Bars =====
+    // Gas bar (acceleration)
+    const gasX = startX;
+    const gasY = startY - barHeight;
+    this.drawVerticalBar(ctx, gasX, gasY, barWidth, barHeight, wheelState.acceleration, '#00ff00', 'GAS');
+
+    // Brake bar
+    const brakeX = gasX + barWidth + spacing;
+    const brakeY = startY - barHeight;
+    this.drawVerticalBar(ctx, brakeX, brakeY, barWidth, barHeight, wheelState.brake, '#ff0000', 'BRK');
+
+    // ===== Wheel Circle =====
+    const wheelX = brakeX + barWidth + spacing + wheelRadius;
+    const wheelY = startY - barHeight / 2;
+    this.drawWheelIndicator(ctx, wheelX, wheelY, wheelRadius, inputState.steering);
+  }
+
+  drawVerticalBar(ctx, x, y, width, height, value, color, label) {
+    // Background (transparent)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(x, y, width, height);
+
+    // Border
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, width, height);
+
+    // Value fill (bottom to top)
+    const fillHeight = height * Math.max(0, Math.min(1, value));
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y + height - fillHeight, width, fillHeight);
+
+    // Label (below bar)
+    ctx.fillStyle = color;
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + width / 2, y + height + 15);
+
+    // Value text
+    ctx.font = '9px monospace';
+    ctx.fillText((value * 100).toFixed(0) + '%', x + width / 2, y + height + 25);
+  }
+
+  drawWheelIndicator(ctx, x, y, radius, steering) {
+    // Outer circle
+    ctx.strokeStyle = '#00ccff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+
+    // Cross lines (center crosshairs)
+    ctx.strokeStyle = '#00ccff';
+    ctx.lineWidth = 1;
+    // Vertical line
+    ctx.beginPath();
+    ctx.moveTo(x, y - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.stroke();
+    // Horizontal line
+    ctx.beginPath();
+    ctx.moveTo(x - radius, y);
+    ctx.lineTo(x + radius, y);
+    ctx.stroke();
+
+    // Steering indicator (dot showing current tilt)
+    const dotOffsetX = steering * (radius * 0.7);
+    ctx.fillStyle = '#00ff00';
+    ctx.beginPath();
+    ctx.arc(x + dotOffsetX, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Label
+    ctx.fillStyle = '#00ccff';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('WHEEL', x, y + radius + 20);
+
+    // Steering value
+    ctx.font = '9px monospace';
+    ctx.fillText(steering.toFixed(2), x, y + radius + 32);
   }
 
   drawDebugInfo() {

@@ -129,7 +129,7 @@ class XboxWheelInterface {
   }
 
   /**
-   * Set the current gear and start timer if applicable
+   * Set the current gear (for tracking state, not for acceleration)
    */
   setGear(gear) {
     if (gear === this.state.gear) return; // No change
@@ -143,18 +143,6 @@ class XboxWheelInterface {
     };
 
     this.state.gear = gear;
-    console.log(`⚙️ ${gearNames[gear]}`);
-
-    // Start gear timer for gears 1-3
-    if (gear >= 1 && gear <= 3) {
-      this.currentGearTimer = {
-        gear: gear,
-        startTime: Date.now(),
-      };
-    } else {
-      this.currentGearTimer = null;
-      this.state.acceleration = 0;
-    }
 
     if (this.callbacks.onGearChange) {
       this.callbacks.onGearChange(gear, gearNames[gear]);
@@ -296,31 +284,64 @@ class XboxWheelInterface {
    * Left paddle - shift down (or to Reverse from Park)
    */
   handleLeftPaddle() {
+    // For shifting, we work with the gear timer state
+    let targetGear = this.state.gear;
+
     if (this.state.gear === 0) {
       // Park -> Reverse
-      this.setGear(-1);
+      targetGear = -1;
     } else if (this.state.gear > 1) {
       // Down-shift
-      this.setGear(this.state.gear - 1);
+      targetGear = this.state.gear - 1;
     } else if (this.state.gear === -1) {
       // Reverse -> Park
-      this.setGear(0);
+      targetGear = 0;
     }
+
+    this.activateGear(targetGear);
   }
 
   /**
    * Right paddle - shift up (or to Gear 1 from Park)
    */
   handleRightPaddle() {
+    // For shifting, we work with the gear timer state
+    let targetGear = this.state.gear;
+
     if (this.state.gear <= 0) {
       // Park/Reverse -> Gear 1
-      this.setGear(1);
+      targetGear = 1;
     } else if (this.state.gear < 3) {
       // Up-shift
-      this.setGear(this.state.gear + 1);
+      targetGear = this.state.gear + 1;
     } else if (this.state.gear === 3) {
       // Gear 3 -> Park
-      this.setGear(0);
+      targetGear = 0;
+    }
+
+    this.activateGear(targetGear);
+  }
+
+  /**
+   * Activate a gear - applies acceleration if gear 1-3
+   */
+  activateGear(gear) {
+    // Only apply acceleration for forward gears (1-3)
+    if (gear >= 1 && gear <= 3) {
+      this.currentGearTimer = {
+        gear: gear,
+        startTime: Date.now(),
+      };
+      console.log(`⚙️ Gear ${gear} engaged`);
+    } else {
+      // Park or Reverse - no acceleration
+      this.currentGearTimer = null;
+      this.state.acceleration = 0;
+      if (gear === 0) {
+        console.log('⚙️ Park');
+      } else if (gear === -1) {
+        console.log('⚙️ Reverse');
+      }
     }
   }
 
